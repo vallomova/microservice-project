@@ -10,24 +10,29 @@
       register: python_check
       changed_when: false
       
-    - name: Install prometheus-client if needed
-      pip:
-        name: prometheus-client
-        state: present
-      when: python_check.rc == 0
-      
+    - name: Create virtual environment
+      become: no
+      shell: |
+        python3 -m venv venv
+        source venv/bin/activate && pip install prometheus-client
+      args:
+        executable: /bin/bash
+        
     - name: Stop any running microservice
       shell: |
         pkill -f "python3 app.py" || true
         sleep 2
       args:
-        warn: no  # Игнорируем ошибку если процесс не найден
+        warn: no
         
-    - name: Start microservice in background
+    - name: Start microservice using virtual environment
       shell: |
         cd /workspaces/microservice-project
-        nohup python3 app.py > microservice.log 2>&1 &
+        source venv/bin/activate
+        nohup python app.py > microservice.log 2>&1 &
         echo "Microservice started with PID: $!"
+      args:
+        executable: /bin/bash
       async: 5
       poll: 0
       register: service_start
@@ -43,3 +48,4 @@
           Microservice deployed successfully!
           Metrics available at: http://localhost:8080/metrics
           Log file: microservice.log
+          Using Python virtual environment
