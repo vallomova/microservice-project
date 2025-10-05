@@ -1,0 +1,25 @@
+image: gitpod/workspace-full
+
+tasks:
+  - init: |
+      sudo apt update
+      sudo apt install -y python3 python3-pip ansible
+      pip3 install prometheus-client
+      
+      mkdir -p microservice-files
+      mkdir -p roles/microservice/{tasks,files}
+    
+      cp $GITPOD_REPO_ROOT/app.py microservice-files/
+      cp $GITPOD_REPO_ROOT/requirements.txt microservice-files/
+      
+      cp microservice-files/* roles/microservice/files/
+      
+      echo "Среда готова! Запускайте: python3 app.py"
+      
+  - command: |
+      cd $GITPOD_REPO_ROOT
+      python3 app.py &
+
+ports:
+  - port: 8080
+    onOpen: open-preview
