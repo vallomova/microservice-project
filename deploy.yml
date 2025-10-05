@@ -1,0 +1,20 @@
+---
+- name: Deploy Microservice in GitPod
+  hosts: localhost
+  connection: local
+  tasks:
+    - name: Install Python dependencies
+      pip:
+        requirements: requirements.txt
+        
+    - name: Ensure microservice is running
+      shell: |
+        pkill -f "python3 app.py" || true
+        cd /workspace/microservice-project
+        nohup python3 app.py > microservice.log 2>&1 &
+      async: 10
+      poll: 0
+      
+    - name: Display status
+      debug:
+        msg: "Microservice deployed! Check https://8080-{{ansible_env.GITPOD_WORKSPACE_URL.replace('https://','')}}"
