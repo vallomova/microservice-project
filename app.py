@@ -24,21 +24,32 @@ class MetricsHandler(BaseHTTPRequestHandler):
         REQUEST_COUNT.inc()
 
 def detect_environment():
-    if os.path.exists('/.gitpod'):
-        return 2  # Container
-    elif os.path.exists('/.dockerenv'):
+    """Определяем тип окружения"""
+    # Codespaces/GitPod работают в контейнере
+    if os.path.exists('/.gitpod') or os.path.exists('/.dockerenv'):
         return 2  # Container
     else:
-        return 1  # Virtual Machine
+        # Проверяем другие признаки виртуальной машины
+        try:
+            import subprocess
+            result = subprocess.run(['systemd-detect-virt'], capture_output=True, text=True)
+            if result.returncode == 0 and result.stdout.strip() != 'none':
+                return 1  # Virtual Machine
+        except:
+            pass
+        return 0  # Physical Server
 
 def main():
     env_type = detect_environment()
     HOST_TYPE.set(env_type)
     
     env_names = {0: 'Physical Server', 1: 'Virtual Machine', 2: 'Container'}
-    print(f"Starting microservice on port 8080...")
-    print(f"Detected environment: {env_names[env_type]}")
-    print(f"Open: https://8080-{os.environ['GITPOD_WORKSPACE_URL'].replace('https://', '')}")
+    print(f"🚀 Starting microservice on port 8080...")
+    print(f"📊 Detected environment: {env_names[env_type]}")
+    
+    # Универсальный способ показать URL
+    print(f"🔗 Your microservice is running!")
+    print(f"📎 Open the 'Ports' tab in Codespaces to access port 8080")
     
     server = HTTPServer(('0.0.0.0', 8080), MetricsHandler)
     server.serve_forever()
