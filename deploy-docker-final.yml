@@ -1,0 +1,40 @@
+---
+- name: Deploy Microservice in Docker (Final)
+  hosts: localhost
+  connection: local
+
+  tasks:
+    - name: Check Docker is available
+      command: docker --version
+      register: docker_check
+      changed_when: false
+
+    - name: Build Docker image
+      command: docker build -t prometheus-microservice .
+
+    - name: Stop existing container
+      command: docker stop prometheus-microservice || true
+      ignore_errors: yes
+
+    - name: Remove existing container
+      command: docker rm prometheus-microservice || true
+      ignore_errors: yes
+
+    - name: Run container in host network mode
+      command: docker run -d --name prometheus-microservice --network host prometheus-microservice
+
+    - name: Wait for service to start
+      wait_for:
+        port: 8080
+        timeout: 15
+
+    - name: Verify container status
+      command: docker ps
+      register: container_status
+
+    - name: Display success message
+      debug:
+        msg: |
+          ✅ Docker Bonus 1 COMPLETED!
+          �� Container: {{ container_status.stdout_lines }}
+          📊 Metrics: http://localhost:8080/metrics
