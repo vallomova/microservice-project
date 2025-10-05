@@ -1,20 +1,45 @@
 ---
-- name: Deploy Microservice in GitPod
+- name: Deploy Prometheus Metrics Microservice
   hosts: localhost
   connection: local
+  become: no
+  
   tasks:
-    - name: Install Python dependencies
+    - name: Check if Python is installed
+      command: python3 --version
+      register: python_check
+      changed_when: false
+      
+    - name: Install prometheus-client if needed
       pip:
-        requirements: requirements.txt
-        
-    - name: Ensure microservice is running
+        name: prometheus-client
+        state: present
+      when: python_check.rc == 0
+      
+    - name: Stop any running microservice
       shell: |
         pkill -f "python3 app.py" || true
-        cd /workspace/microservice-project
+        sleep 2
+      args:
+        warn: no  # Игнорируем ошибку если процесс не найден
+        
+    - name: Start microservice in background
+      shell: |
+        cd /workspaces/microservice-project
         nohup python3 app.py > microservice.log 2>&1 &
-      async: 10
+        echo "Microservice started with PID: $!"
+      async: 5
       poll: 0
+      register: service_start
       
-    - name: Display status
+    - name: Wait for service to start
+      wait_for:
+        port: 8080
+        timeout: 10
+        
+    - name: Display service status
       debug:
-        msg: "Microservice deployed! Check https://8080-{{ansible_env.GITPOD_WORKSPACE_URL.replace('https://','')}}"
+        msg: |
+          Microservice deployed successfully!
+          Metrics available at: http://localhost:8080/metrics
+          Log file: microservice.log
